@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Reybex Mobile Application">
+    <meta name="theme-color" content="#3b82f6">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Reybex">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    
+    <title>Reybex Mobile</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div x-data="app()" x-init="init()" class="min-h-screen" style="display: block;">
+        <!-- Login Page -->
+        <div x-show="currentPage === 'login'" x-transition class="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-gray-50 to-gray-100">
+            <div class="w-full max-w-md">
+                <div class="text-center mb-8">
+                    <!-- Reybex Logo -->
+                    <div class="flex justify-center mb-6">
+                        <img 
+                            src="https://www.reybex.com/wp-content/uploads/2024/04/Reybex_Logo_Wort-_Bildmarke_darkgreen_RGB.svg" 
+                            alt="Reybex Logo" 
+                            class="h-12 w-auto"
+                        >
+                    </div>
+                    
+                    <!-- App Title with Icon -->
+                    <div class="flex items-center justify-center gap-2 mb-3">
+                        <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                        <h1 class="text-2xl font-bold text-gray-900">Reybex Task Manager</h1>
+                    </div>
+                    <p class="text-gray-600 text-sm">Giriş yapın</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
+                    <form @submit.prevent="handleLogin" class="space-y-4">
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Kullanıcı Adı</label>
+                            <input 
+                                type="text" 
+                                id="username"
+                                x-model="loginForm.username"
+                                required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                                placeholder="Kullanıcı adınızı girin"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Şifre</label>
+                            <input 
+                                type="password" 
+                                id="password"
+                                x-model="loginForm.password"
+                                required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                                placeholder="••••••••"
+                            >
+                        </div>
+                        
+                        <div x-show="loginError" x-transition class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                            <span x-text="loginError"></span>
+                        </div>
+                        
+                        <button 
+                            type="submit"
+                            :disabled="loginLoading"
+                            class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                            <span x-show="!loginLoading">Giriş Yap</span>
+                            <span x-show="loginLoading" class="flex items-center justify-center">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Giriş yapılıyor...
+                            </span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Header Bar (for all pages except login) -->
+        <div x-show="currentPage !== 'login'" x-transition class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <button 
+                        x-show="currentPage === 'task-detail'"
+                        @click="previousPage ? currentPage = previousPage : (currentPage = 'sprint-tasks')"
+                        class="p-2 hover:bg-gray-100 rounded-lg transition"
+                    >
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <button 
+                        x-show="currentPage === 'sprint-tasks' || currentPage === 'tickets'"
+                        @click="navigateToMenu()"
+                        class="p-2 hover:bg-gray-100 rounded-lg transition"
+                    >
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <button 
+                        x-show="currentPage !== 'menu' && currentPage !== 'sprint-tasks' && currentPage !== 'task-detail' && currentPage !== 'tickets'"
+                        @click="navigateToMenu()"
+                        class="p-2 hover:bg-gray-100 rounded-lg transition"
+                    >
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <h1 class="text-xl font-bold text-gray-900" x-text="currentPage === 'task-detail' ? (taskDetail?.task?.taskNumber || 'Task Detail') : getPageTitle()"></h1>
+                </div>
+                
+                <!-- User Avatar and Dropdown -->
+                <div class="relative" @click.away="closeLogoutDropdown()">
+                    <button 
+                        @click="toggleLogoutDropdown()"
+                        class="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 transition"
+                    >
+                        <!-- Avatar Image or Initials -->
+                        <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0 relative">
+                            <img 
+                                x-show="avatarUrl" 
+                                :src="avatarUrl" 
+                                :alt="getDisplayName()" 
+                                class="w-full h-full object-cover absolute inset-0"
+                                @error="avatarUrl = ''"
+                            >
+                            <span x-show="!avatarUrl" x-text="getInitials()" class="relative z-10"></span>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700" x-text="getDisplayName()"></span>
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Logout Dropdown -->
+                    <div 
+                        x-show="showLogoutDropdown"
+                        x-transition
+                        class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30"
+                    >
+                        <button 
+                            @click="handleLogout()"
+                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center space-x-2"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            <span>Çıkış Yap</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Menu Page -->
+        <div x-show="currentPage === 'menu'" x-transition class="min-h-screen pb-20">
+            <div class="px-4 py-6 space-y-3">
+                <!-- Active Task Card -->
+                <div 
+                    x-show="activeBooking && activeBooking.showCurrentBooking"
+                    class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-4 text-white mb-4"
+                >
+                    <!-- Active Task (has id) -->
+                    <div x-show="activeBooking && activeBooking.id" @click="openActiveTaskDetail()" class="cursor-pointer active:opacity-80 transition">
+                        <div class="flex items-start gap-3">
+                            <!-- Play Icon -->
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"></path>
+                                </svg>
+                            </div>
+                            
+                            <!-- Task Info -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-xs font-medium opacity-90 uppercase tracking-wide">Aktif Task</p>
+                                    <p class="text-xl font-bold tabular-nums" x-text="formatBookingTime(getCurrentBookingTime())"></p>
+                                </div>
+                                <p class="text-base font-bold mb-1" x-text="activeBooking?.taskNumber || 'N/A'"></p>
+                                <div class="overflow-x-auto scrollbar-hide -mx-2 px-2">
+                                    <p class="text-sm opacity-95 whitespace-nowrap" x-text="activeBooking?.translatedName || ''"></p>
+                                </div>
+                            </div>
+                            
+                            <!-- Stop Button -->
+                            <button 
+                                @click.stop="stopActiveBooking($event)"
+                                :disabled="taskTrackingLoading"
+                                class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50 flex items-center space-x-1.5 flex-shrink-0"
+                            >
+                                <svg x-show="!taskTrackingLoading" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M6 6h12v12H6z"></path>
+                                </svg>
+                                <svg x-show="taskTrackingLoading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Stop</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- No Active Task -->
+                    <div x-show="!activeBooking || !activeBooking.id" class="text-center py-2">
+                        <div class="flex items-center justify-center space-x-2 mb-2">
+                            <svg class="w-5 h-5 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p class="text-sm font-medium opacity-90">Şu kadar süredir çalışılan task yok</p>
+                        </div>
+                        <p class="text-xs opacity-75" x-text="'(' + formatBookingTime(getCurrentBookingTime()) + ')'"></p>
+                    </div>
+                </div>
+                
+                <template x-for="item in menuItems" :key="item.id">
+                    <div 
+                        @click="navigateToMenuItem(item.id)"
+                        class="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between active:bg-gray-50 transition cursor-pointer"
+                    >
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <span x-text="item.icon" class="text-xl"></span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900" x-text="item.title"></h3>
+                                <p class="text-sm text-gray-500" x-text="item.subtitle"></p>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Sprint Tasks Page -->
+        <div x-show="currentPage === 'sprint-tasks'" x-transition class="min-h-screen pb-24">
+            <!-- Loading State -->
+            <div x-show="kanbanLoading" class="px-4 py-6">
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-gray-600">Yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error State -->
+            <div x-show="kanbanError && !kanbanLoading" class="px-4 py-6">
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <p x-text="kanbanError"></p>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div x-show="!kanbanLoading && !kanbanError" class="px-4 py-6 space-y-3">
+                <template x-for="task in getTasksForTab()" :key="task.id">
+                    <div 
+                        @click="openTaskDetail(task.id)"
+                        class="bg-white rounded-xl shadow-sm p-4 active:bg-gray-50 transition cursor-pointer"
+                    >
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="text-sm font-semibold text-gray-900" x-text="task.taskNumber || 'N/A'"></span>
+                                    <span 
+                                        :class="getPriorityColor(task.priorityName)"
+                                        class="px-2 py-0.5 rounded text-xs font-medium"
+                                        x-text="task.priorityName || 'Normal'"
+                                    ></span>
+                                </div>
+                                <h3 class="text-base font-semibold text-gray-900 mb-2" x-text="task.title || 'Başlıksız'"></h3>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    <span x-text="task.responsibleUser?.translatedName || 'Atanmamış'"></span>
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span x-text="(task.budget || 0) + 'h'"></span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-16 bg-gray-200 rounded-full h-2">
+                                    <div 
+                                        class="bg-blue-600 h-2 rounded-full transition-all"
+                                        :style="'width: ' + (task.progress || 0) + '%'"
+                                    ></div>
+                                </div>
+                                <span class="text-xs font-medium text-gray-700" x-text="(task.progress || 0) + '%'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                
+                <div x-show="getTasksForTab().length === 0" class="text-center py-12">
+                    <p class="text-gray-500">Bu kategoride task bulunmuyor.</p>
+                </div>
+            </div>
+            
+            <!-- Bottom Tab Bar -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10">
+                <div class="flex items-center justify-around px-2 py-2">
+                    <!-- Todo -->
+                    <button 
+                        @click="selectTab('todo')"
+                        :class="selectedTab === 'todo' ? 'text-blue-600' : 'text-gray-500'"
+                        class="flex flex-col items-center justify-center p-2 relative min-w-0 flex-1"
+                    >
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        <span class="text-xs font-medium">Todo</span>
+                        <span 
+                            x-show="kanbanCounts.todo > 0"
+                            class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                            x-text="kanbanCounts.todo"
+                        ></span>
+                    </button>
+                    
+                    <!-- In Process -->
+                    <button 
+                        @click="selectTab('inProcess')"
+                        :class="selectedTab === 'inProcess' ? 'text-blue-600' : 'text-gray-500'"
+                        class="flex flex-col items-center justify-center p-2 relative min-w-0 flex-1"
+                    >
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-xs font-medium">In Process</span>
+                        <span 
+                            x-show="kanbanCounts.inProcess > 0"
+                            class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                            x-text="kanbanCounts.inProcess"
+                        ></span>
+                    </button>
+                    
+                    <!-- Wfc -->
+                    <button 
+                        @click="selectTab('wfc')"
+                        :class="selectedTab === 'wfc' ? 'text-blue-600' : 'text-gray-500'"
+                        class="flex flex-col items-center justify-center p-2 relative min-w-0 flex-1"
+                    >
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-xs font-medium">Wfc</span>
+                        <span 
+                            x-show="kanbanCounts.wfc > 0"
+                            class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                            x-text="kanbanCounts.wfc"
+                        ></span>
+                    </button>
+                    
+                    <!-- B2R -->
+                    <button 
+                        @click="selectTab('b2r')"
+                        :class="selectedTab === 'b2r' ? 'text-blue-600' : 'text-gray-500'"
+                        class="flex flex-col items-center justify-center p-2 relative min-w-0 flex-1"
+                    >
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                        </svg>
+                        <span class="text-xs font-medium">B2R</span>
+                        <span 
+                            x-show="kanbanCounts.b2r > 0"
+                            class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                            x-text="kanbanCounts.b2r"
+                        ></span>
+                    </button>
+                    
+                    <!-- Done -->
+                    <button 
+                        @click="selectTab('done')"
+                        :class="selectedTab === 'done' ? 'text-blue-600' : 'text-gray-500'"
+                        class="flex flex-col items-center justify-center p-2 relative min-w-0 flex-1"
+                    >
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="text-xs font-medium">Done</span>
+                        <span 
+                            x-show="kanbanCounts.done > 0"
+                            class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+                            x-text="kanbanCounts.done"
+                        ></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tickets Page -->
+        <div x-show="currentPage === 'tickets'" x-transition class="min-h-screen pb-20">
+            <!-- Loading State -->
+            <div x-show="ticketsLoading" class="px-4 py-6">
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-gray-600">Yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error State -->
+            <div x-show="ticketsError && !ticketsLoading" class="px-4 py-6">
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <p x-text="ticketsError"></p>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div x-show="!ticketsLoading && !ticketsError" class="px-4 py-6">
+                <div class="space-y-3">
+                    <template x-for="ticket in tickets" :key="ticket.task_hid">
+                        <div 
+                            @click="openTaskDetail(ticket.task_hid)"
+                            class="bg-white rounded-xl shadow-sm p-4 active:bg-gray-50 transition cursor-pointer border border-gray-200"
+                        >
+                            <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                                <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full" x-text="ticket.task_taskNumber || 'N/A'"></span>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span 
+                                        x-show="ticket.taskType_name"
+                                        class="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded-full"
+                                        x-text="ticket.taskType_name"
+                                    ></span>
+                                    <span 
+                                        x-show="ticket.priority_name"
+                                        :class="getPriorityColor(ticket.priority_name)"
+                                        class="px-2 py-0.5 rounded-full text-xs font-medium"
+                                        x-text="ticket.priority_name"
+                                    ></span>
+                                    <span 
+                                        x-show="ticket.taskStatusTranslations_name"
+                                        class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded-full"
+                                        x-text="ticket.taskStatusTranslations_name"
+                                    ></span>
+                                </div>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 text-base mb-2" x-text="ticket.task_title || 'Başlıksız'"></h3>
+                            <div class="space-y-1.5 text-sm text-gray-600">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span x-text="ticket.task_dateCreated ? formatDateOnly(ticket.task_dateCreated) : 'N/A'"></span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    <span x-text="ticket.responsibleUser || 'Atanmamış'"></span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <span x-text="ticket.supportLine_name || 'N/A'"></span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H2v-2a3 3 0 015.356-1.857M17 20v-2c0-.165-.01-.33-.032-.49C16.59 16.536 14.99 16 13 16s-3.59.536-3.968 1.51c-.022.16-.032.325-.032.49v2m0-2h2.004m-2.004 0A9.954 9.054 0 0112 5a9.954 9.054 0 01-5.004 1.51C6.59 6.536 8.19 7 10 7s3.59-.536 3.968-1.51c.022-.16.032-.325.032-.49V2.004m0 0h-2.004"></path>
+                                    </svg>
+                                    <span class="truncate" x-text="ticket.customer_name || 'N/A'"></span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                        </svg>
+                                        <span>Progress: <span class="font-medium" x-text="(ticket.task_progress || 0) + '%'"></span></span>
+                                    </div>
+                                    <div class="w-24 bg-gray-200 rounded-full h-2">
+                                        <div 
+                                            class="bg-blue-600 h-2 rounded-full transition-all"
+                                            :style="'width: ' + (ticket.task_progress || 0) + '%'"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="tickets.length === 0 && !ticketsLoading" class="text-center py-12 text-gray-500">
+                        <p>Ticket bulunmuyor.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Last Comments Page -->
+        <div x-show="currentPage === 'last-comments'" x-transition class="min-h-screen pb-20">
+            <!-- Loading State -->
+            <div x-show="lastCommentsLoading" class="px-4 py-6">
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-gray-600">Yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error State -->
+            <div x-show="lastCommentsError && !lastCommentsLoading" class="px-4 py-6">
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <p x-text="lastCommentsError"></p>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div x-show="!lastCommentsLoading && !lastCommentsError" class="px-4 py-6">
+                <div class="space-y-3">
+                    <template x-for="comment in lastComments" :key="comment.task_hid + '-' + comment.comment_date">
+                        <div 
+                            @click="openTaskDetail(comment.task_hid)"
+                            class="bg-white rounded-xl shadow-sm p-4 active:bg-gray-50 transition cursor-pointer border border-gray-200"
+                        >
+                            <!-- Task Info -->
+                            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full" x-text="comment.task_number || 'N/A'"></span>
+                                    <span 
+                                        x-show="comment.mr_status && comment.mr_status !== 'null'"
+                                        class="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded-full"
+                                        x-text="comment.mr_status"
+                                    ></span>
+                                </div>
+                                <span 
+                                    x-show="comment.taskStatus"
+                                    class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded-full"
+                                    x-text="comment.taskStatus"
+                                ></span>
+                            </div>
+                            
+                            <!-- Title -->
+                            <h3 class="font-semibold text-gray-900 text-base mb-2" x-text="comment.title || 'Başlıksız'"></h3>
+                            
+                            <!-- Comment -->
+                            <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap break-words" x-text="comment.comment || ''"></p>
+                            </div>
+                            
+                            <!-- Commenter Info -->
+                            <div class="flex items-center justify-between text-xs text-gray-600 mb-2">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    <span x-text="(comment.commenter_firstname || '') + ' ' + (comment.commenter_surname || '')"></span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span x-text="comment.comment_date ? formatDate(comment.comment_date) : 'N/A'"></span>
+                                </div>
+                            </div>
+                            
+                            <!-- Task User and Responsible User Info -->
+                            <div class="space-y-1.5 pt-2 border-t border-gray-100">
+                                <div class="flex items-center space-x-2 text-xs text-gray-500">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Task User: <span class="font-medium" x-text="(comment.taskUser_firstname || '') + ' ' + (comment.taskUser_surname || '')"></span></span>
+                                </div>
+                                <div x-show="comment.responsible_firstname || comment.responsible_surname" class="flex items-center space-x-2 text-xs text-gray-500">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    <span>Responsible: <span class="font-medium" x-text="(comment.responsible_firstname || '') + ' ' + (comment.responsible_surname || '')"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="lastComments.length === 0 && !lastCommentsLoading" class="text-center py-12 text-gray-500">
+                        <p>Yorum bulunmuyor.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Task Detail Page -->
+        <div x-show="currentPage === 'task-detail'" x-transition class="min-h-screen pb-24">
+            <!-- Loading State -->
+            <div x-show="taskDetailLoading" class="px-4 py-6">
+                <div class="flex items-center justify-center py-12">
+                    <div class="text-center">
+                        <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-gray-600">Yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error State -->
+            <div x-show="taskDetailError && !taskDetailLoading" class="px-4 py-6">
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <p x-text="taskDetailError"></p>
+                </div>
+            </div>
+            
+            <!-- Content -->
+            <div x-show="!taskDetailLoading && !taskDetailError && taskDetail" class="px-4 py-6">
+                <!-- Detail Tab -->
+                <div x-show="taskDetailTab === 'detail'" class="space-y-4">
+                    <!-- Task Header -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="text-lg font-bold text-gray-900" x-text="taskDetail?.task?.taskNumber || 'N/A'"></span>
+                                    <span 
+                                        :class="getPriorityColor(taskDetail?.task?.priority?.translatedName)"
+                                        class="px-2 py-1 rounded text-xs font-medium"
+                                        x-text="taskDetail?.task?.priority?.translatedName || 'Normal'"
+                                    ></span>
+                                    <span 
+                                        x-show="taskDetail?.task?.taskVcsStatus?.status"
+                                        :class="getVcsStatusColor(taskDetail?.task?.taskVcsStatus?.status)"
+                                        class="px-2 py-1 rounded text-xs font-medium capitalize"
+                                        x-text="taskDetail?.task?.taskVcsStatus?.status || ''"
+                                    ></span>
+                                </div>
+                                <h2 class="text-xl font-bold text-gray-900 mb-2" x-text="taskDetail?.task?.title || 'Başlıksız'"></h2>
+                                <p x-show="taskDetail?.task?.releaseNotes" class="text-sm text-gray-600 italic" x-text="'Release Notes: ' + (taskDetail?.task?.releaseNotes || '')"></p>
+                            </div>
+                            <!-- Play/Stop Button -->
+                            <button 
+                                @click="handlePlayStopClick()"
+                                :disabled="taskTrackingLoading"
+                                :class="isTaskTracking ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+                                class="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 ml-3"
+                            >
+                                <svg x-show="!isTaskTracking && !taskTrackingLoading" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"></path>
+                                </svg>
+                                <svg x-show="isTaskTracking && !taskTrackingLoading" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M6 6h12v12H6z"></path>
+                                </svg>
+                                <svg x-show="taskTrackingLoading" class="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Grid -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- Task Status -->
+                        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <span class="text-xs text-gray-500">Status</span>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-900" x-text="taskDetail?.task?.taskStatus?.translatedName || 'N/A'"></p>
+                        </div>
+                        
+                        <!-- Task Type -->
+                        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                <span class="text-xs text-gray-500">Type</span>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-900" x-text="taskDetail?.task?.taskType?.translatedName || 'N/A'"></p>
+                        </div>
+                        
+                        <!-- Report Date -->
+                        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <span class="text-xs text-gray-500">Report Date</span>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-900" x-text="formatDateOnly(taskDetail?.task?.reportDate) || 'N/A'"></p>
+                        </div>
+                        
+                        <!-- Sprint -->
+                        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <span class="text-xs text-gray-500">Sprint</span>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-900" x-text="taskDetail?.task?.sprint?.translatedName || 'N/A'"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Users Section -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-3">Kullanıcılar</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    <span class="text-sm text-gray-600">User</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900" x-text="taskDetail?.task?.user?.translatedName || 'N/A'"></span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                    </svg>
+                                    <span class="text-sm text-gray-600">Responsible User</span>
+                                </div>
+                                <span class="text-sm font-medium text-gray-900" x-text="taskDetail?.task?.responsibleUser?.translatedName || 'N/A'"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Section -->
+                    <div x-show="taskDetail?.task?.customer" class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-3">Müşteri</h3>
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                            <span class="text-sm font-medium text-gray-900" x-text="taskDetail?.task?.customer?.translatedName || 'N/A'"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Budget & Progress -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-3">İlerleme</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm text-gray-600">Budget</span>
+                                    <span class="text-sm font-semibold text-gray-900" x-text="(taskDetail?.task?.budget || 0) + 'h'"></span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm text-gray-600">Progress</span>
+                                    <span class="text-sm font-semibold text-gray-900" x-text="(taskDetail?.task?.progress || 0) + '%'"></span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-3">
+                                    <div 
+                                        class="bg-blue-600 h-3 rounded-full transition-all"
+                                        :style="'width: ' + (taskDetail?.task?.progress || 0) + '%'"
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div x-show="taskDetail?.task?.description" class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-3">Description</h3>
+                        <div class="prose prose-sm max-w-none break-words overflow-wrap-anywhere">
+                            <div class="text-sm text-gray-700 prose prose-sm max-w-none break-words overflow-wrap-anywhere" x-html="parseDescription(taskDetail?.task?.description)"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Comments Tab -->
+                <div x-show="taskDetailTab === 'comments'" class="space-y-3">
+                    <!-- Loading State -->
+                    <div x-show="taskCommentsLoading" class="flex items-center justify-center py-12">
+                        <div class="text-center">
+                            <svg class="animate-spin h-6 w-6 text-blue-600 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="text-sm text-gray-600">Yorumlar yükleniyor...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Error State -->
+                    <div x-show="taskCommentsError && !taskCommentsLoading" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                        <p x-text="taskCommentsError"></p>
+                    </div>
+                    
+                    <!-- Comments List -->
+                    <div x-show="!taskCommentsLoading && !taskCommentsError" class="space-y-3">
+                        <template x-for="comment in taskComments" :key="comment.id">
+                            <div 
+                                :class="isCurrentUser(comment.user?.id) ? 'ml-auto' : 'mr-auto'"
+                                class="max-w-[85%]"
+                            >
+                                <div 
+                                    :class="[
+                                        isCurrentUser(comment.user?.id) 
+                                            ? getUserBackgroundColor(comment.user?.id) + ' border-2 border-blue-300 shadow-md' 
+                                            : 'bg-white border border-gray-200',
+                                        'rounded-2xl shadow-sm p-4'
+                                    ]"
+                                >
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div class="flex items-center space-x-2 flex-1">
+                                            <div 
+                                                :class="getUserColor(comment.user?.id)"
+                                                class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
+                                            >
+                                                <span x-text="(comment.user?.translatedName || 'U').charAt(0).toUpperCase()"></span>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-semibold text-gray-900 truncate" x-text="comment.user?.translatedName || 'Bilinmeyen Kullanıcı'"></p>
+                                                <p class="text-xs text-gray-500" x-text="formatDate(comment.dateCreated)"></p>
+                                            </div>
+                                        </div>
+                                        <div x-show="comment.attachments && comment.attachments.length > 0" class="flex items-center ml-2 flex-shrink-0">
+                                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="text-sm text-gray-700 whitespace-pre-wrap break-words" x-text="comment.comment || ''"></p>
+                                    </div>
+                                    <div x-show="comment.isEdited" class="mt-2">
+                                        <span class="text-xs text-gray-400 italic">Düzenlendi</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <div x-show="taskComments.length === 0 && !taskCommentsLoading" class="text-center py-12">
+                            <p class="text-gray-500">Henüz yorum yok.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Time History Tab -->
+                <div x-show="taskDetailTab === 'timeHistory'" class="space-y-3">
+                    <!-- Loading State -->
+                    <div x-show="taskHistoryLoading" class="flex items-center justify-center py-12">
+                        <div class="text-center">
+                            <svg class="animate-spin h-6 w-6 text-blue-600 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="text-sm text-gray-600">Time history yükleniyor...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Error State -->
+                    <div x-show="taskHistoryError && !taskHistoryLoading" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                        <p x-text="taskHistoryError"></p>
+                    </div>
+                    
+                    <!-- History List -->
+                    <div x-show="!taskHistoryLoading && !taskHistoryError" class="space-y-3">
+                        <template x-for="history in taskHistory" :key="history.taskCost_hid || history.taskHistory_hid">
+                            <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                                                <span x-text="(history.taskCost_user || 'U').charAt(0).toUpperCase()"></span>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-gray-900" x-text="history.taskCost_user || 'Bilinmeyen Kullanıcı'"></p>
+                                                <p class="text-xs text-gray-500" x-text="formatDateOnly(history.taskCost_costDate)"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span 
+                                            :class="getTimeDisplay(history).isApproved ? 'text-gray-900' : 'text-red-600'"
+                                            class="text-lg font-bold"
+                                            x-text="getTimeDisplay(history).value.toFixed(2) + 'h'"
+                                        ></span>
+                                        <p class="text-xs text-gray-500 mt-1" x-text="getTimeDisplay(history).isApproved ? 'Onaylanmış' : 'Onay bekliyor'"></p>
+                                    </div>
+                                </div>
+                                <div x-show="history.taskCost_comment" class="mt-2 pt-2 border-t border-gray-100">
+                                    <p class="text-sm text-gray-700" x-text="history.taskCost_comment"></p>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <div x-show="taskHistory.length === 0 && !taskHistoryLoading" class="text-center py-12">
+                            <p class="text-gray-500">Time history bulunmuyor.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom Tab Bar -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10">
+                <div class="flex items-center justify-around px-2 py-2">
+                    <!-- Detail -->
+                    <button 
+                        @click="selectTaskDetailTab('detail')"
+                        :class="taskDetailTab === 'detail' ? 'text-blue-600' : 'text-gray-500'"
+                        class="flex flex-col items-center justify-center p-2 min-w-0 flex-1"
+                    >
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-xs font-medium">Detail</span>
+                    </button>
+                    
+                    <!-- Comments -->
+                    <button 
+                        @click="selectTaskDetailTab('comments')"
+                        :class="taskDetailTab === 'comments' ? 'text-blue-600' : 'text-gray-500'"
+                        class="flex flex-col items-center justify-center p-2 min-w-0 flex-1"
+                    >
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        <span class="text-xs font-medium">Comments</span>
+                    </button>
+                    
+                    <!-- Time History -->
+                    <button 
+                        @click="selectTaskDetailTab('timeHistory')"
+                        :class="taskDetailTab === 'timeHistory' ? 'text-blue-600' : 'text-gray-500'"
+                        class="flex flex-col items-center justify-center p-2 min-w-0 flex-1"
+                    >
+                        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-xs font-medium">Time History</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Application Scripts (load before Alpine.js) -->
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/app.js"></script>
+    
+    <!-- Alpine.js (load after app scripts) -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.5/dist/cdn.min.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Use relative path for GitHub Pages compatibility
+                const swPath = './sw.js';
+                navigator.serviceWorker.register(swPath)
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+
