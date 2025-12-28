@@ -2,21 +2,21 @@
   "name": "Reybex Task Manager",
   "short_name": "Reybex",
   "description": "Reybex Mobile Application",
-  "start_url": "./reybex-task-manager-lite/",
-  "scope": "./reybex-task-manager-lite/",
+  "start_url": "/reybex-task-manager-lite/",
+  "scope": "/reybex-task-manager-lite/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "./assets/icons/icon-192x192.png",
+      "src": "/reybex-task-manager-lite/assets/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "./assets/icons/icon-512x512.png",
+      "src": "/reybex-task-manager-lite/assets/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
